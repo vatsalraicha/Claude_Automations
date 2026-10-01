@@ -1,0 +1,40 @@
+# OS and Python noise
+.DS_Store
+__pycache__/
+*.pyc
+*.tmp
+
+# Machine-specific Claude permissions (the shared ones are in .claude/settings.json)
+.claude/settings.local.json
+
+# Data the loops generate when they run. This is company content (Confluence pages, cloned
+# repositories, Jira tickets, extracted knowledge) and must not be pushed to this repository.
+*/outputs/
+*/manifest*.csv
+*/inventory*.jsonl
+*/work/
+*/checks/
+
+01-confluence-download/raw/
+01-confluence-download/pages/
+01-confluence-download/attachments/
+01-confluence-download/spotcheck/
+
+02a-repo-docs/repos/
+02a-repo-docs/scans/
+02a-repo-docs/docs/
+02a-repo-docs/facts/
+
+02b-repo-linkage/links/
+02b-repo-linkage/graph/
+
+03-repo-business-knowledge/business/
+03-repo-business-knowledge/catalog/
+
+04-confluence-business-knowledge/business/
+04-confluence-business-knowledge/catalog/
+
+05-jira-enrichment/tickets/
+05-jira-enrichment/enrichment/
+05-jira-enrichment/references.csv
+05-jira-enrichment/project-keys.txt
