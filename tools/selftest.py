@@ -132,8 +132,9 @@ def main():
         kit = tmp / "kit"
         ignore = shutil.ignore_patterns("__pycache__", "repos", "docs", "facts", "scans", "checks", "links", "work", "graph",
                                         "business", "catalog", "tickets", "enrichment", "outputs", "manifest*.csv",
-                                        "references.csv", "project-keys.txt", "raw", "pages", "attachments")
-        for name in ("tools", "02a-repo-docs", "02b-repo-linkage", "05-jira-enrichment"):
+                                        "references.csv", "project-keys.txt", "raw", "pages", "attachments",
+                                        "chapters", "HANDBOOK.md", "outline.json")
+        for name in ("tools", "02a-repo-docs", "02b-repo-linkage", "05-jira-enrichment", "06-business-handbook"):
             shutil.copytree(KIT / name, kit / name, ignore=ignore)
         for name in ("03-repo-business-knowledge", "04-confluence-business-knowledge", "01-confluence-download"):
             (kit / name).mkdir(parents=True)
@@ -317,7 +318,8 @@ def main():
         c = kit / "01-confluence-download"
         write(c / "pages/2001-refund-policy.md",
               "---\ntitle: \"Refund policy\"\npage_id: \"2001\"\n---\n\n# Refund policy\n\n## Refund window\n\n"
-              "Customers may request a **refund within 30 days** of purchase. See PAY-12.\n")
+              "Customers may request a **refund within 30 days** of purchase. See PAY-12.\n\n"
+              "Refund data is loaded into Snowflake every night by the Refunds team for the Finance reporting group.\n")
         write(c / "pages/2002-team-lunch.md", "---\ntitle: \"Team lunch\"\npage_id: \"2002\"\n---\n\n# Team lunch\n\nPizza on Friday.\n")
         with open(c / "manifest.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
@@ -346,6 +348,90 @@ def main():
         check("04: quote across markdown formatting is found and pages are verified", all(x["status"] == "verified" for x in r.values()), out)
         py(kit / "tools/bk.py", "render", "--kind", "page", "--loop", g.name)
         check("04: catalog shows the page title and date", "last modified 2025-03-01" in (g / "catalog/rules-catalog.md").read_text())
+
+        # ------------------------------------------------------------------ 06
+        h = kit / "06-business-handbook"
+        hb = h / "handbook.py"
+        code, out = py(hb, "tree", "--platforms", "Snowflake,Databricks")
+        check("06: page tree and platform index written", "[2001] Refund policy" in (h / "work/tree.md").read_text()
+              and "## Snowflake (1 pages)" in (h / "work/platform-mentions.md").read_text(), out)
+        outline = {"organisation": "Payments Intelligence", "platforms": ["Snowflake", "Databricks"],
+                   "areas": [{"id": "refunds", "title": "Refunds", "team": "Refunds", "kind": "team", "pages": ["2001"]},
+                             {"id": "overview", "title": "Payments Intelligence — overview", "team": "", "kind": "overview", "pages": []}]}
+        dump(h / "outline.json", outline)
+        code, out = py(hb, "verify-outline")
+        check("06: outline that leaves a page unassigned is rejected", code != 0 and "FAIL  O4" in out and "2002" in out, out)
+        outline["areas"][0]["pages"] = ["2001", "2002"]
+        dump(h / "outline.json", outline)
+        code, out = py(hb, "verify-outline", "--write-manifest")
+        r = rows(h / "manifest.csv", "area")
+        check("06: complete outline accepted, overview queued last", code == 0 and list(r) == ["refunds", "overview"], out)
+
+        nd = "Not documented in the pages for this area."
+        def team_chapter(why, process, platforms, not_used="None."):
+            return ("# Refunds\n\nArea: refunds\n\n## 1. Why this team exists\n%s\n\n## 2. People, roles and ownership\n%s\n\n"
+                    "## 3. What the team delivers\n%s\n\n## 4. Consumers and stakeholders\n"
+                    "The Finance reporting group receives the refund data. [p:2001]\n\n## 5. Processes followed\n%s\n\n"
+                    "## 6. Platforms and tools\n%s\n\n## 7. Data and reporting\n%s\n\n## 8. Rules, policies and service levels\n%s\n\n"
+                    "## 9. History and decisions\n%s\n\n## 10. Gaps, contradictions and stale content\n%s\n\n## Pages not used\n%s\n"
+                    % (why, nd, nd, process, platforms, nd, nd, nd, nd, not_used))
+        good_platforms = "### Snowflake\nRefund data is loaded every night by the Refunds team. [p:2001]\n\n### Databricks\n" + nd
+        bad = team_chapter("The team was founded to cut refund fraud across the EMEA region.",
+                           "- Customers may request a refund within 45 days of purchase. [p:2001]",
+                           "### Snowflake\nSnowflake is a cloud data warehouse.")
+        write(h / "chapters/refunds.md", bad)
+        py(kit / "tools/manifest.py", "set", h / "manifest.csv", "refunds", "status=done")
+        code, out = py(hb, "verify", "--area", "refunds", "--no-update")
+        check("06: paragraph without a source is rejected", "FAIL  H2" in out, out)
+        check("06: number that is not on the cited page is rejected", "FAIL  H4" in out and "45" in out, out)
+        check("06: platform described from general knowledge, or left out, is rejected", "FAIL  H6" in out and "Databricks" in out and "Snowflake" in out, out)
+        check("06: chapter without an independent check is rejected", "FAIL  H9" in out, out)
+        empty = team_chapter(nd, nd, "### Snowflake\n" + nd + "\n\n### Databricks\n" + nd, "- [p:2001] nothing relevant on this page")
+        write(h / "chapters/refunds.md", empty.replace("The Finance reporting group receives the refund data. [p:2001]", nd))
+        code, out = py(hb, "verify", "--area", "refunds", "--no-update")
+        check("06: a page with catalogued business knowledge cannot be set aside as not used",
+              "FAIL  H5" in out and "loop 04 found business knowledge" in out, out)
+        check("06: a platform the pages mention cannot be marked not documented", "FAIL  H6" in out and "Snowflake: 1 page(s) mention it" in out, out)
+        write(h / "chapters/refunds.md", team_chapter("The Refunds team handles refund requests from customers. [p:2001]",
+                                                      "### Refund request\n- Customers may request a refund within 30 days of purchase. [p:2001]",
+                                                      good_platforms))
+        time.sleep(0.05)
+        dump(h / "checks/refunds.json", {"sampled": [
+            {"block": "The Refunds team handles refund requests from customers. [p:2001]", "pages": ["2001"], "result": "PASS", "reason": "stated"},
+            {"block": "The Finance reporting group receives the refund data. [p:2001]", "pages": ["2001"], "result": "PASS", "reason": "stated"},
+            {"block": "- Customers may request a refund within 30 days of purchase. [p:2001]", "pages": ["2001"], "result": "PASS", "reason": "stated"},
+            {"block": "Refund data is loaded every night by the Refunds team. [p:2001]", "pages": ["2001"], "result": "PASS", "reason": "stated"}], "left_out": []})
+        overview = ("# Payments Intelligence — overview\n\nArea: overview\n\n## 1. Why it exists\n" + nd + "\n\n## 2. Teams and what each owns\n"
+                    "### Refunds\nThe Refunds team loads refund data every night. [p:2001]\n\n## 3. Consumers\n"
+                    "The Finance reporting group consumes refund data. [p:2001]\n\n## 4. Processes followed\n"
+                    "- Refund request (Refunds): customers may request a refund within 30 days of purchase. [p:2001]\n\n"
+                    "## 5. Platforms and tools\n### Snowflake\nThe Refunds team loads refund data into it every night. [p:2001]\n\n"
+                    "### Databricks\n" + nd + "\n\n## 6. How work and data flow across teams\n" + nd +
+                    "\n\n## 7. Gaps, contradictions and stale content\n" + nd + "\n\n## Pages not used\nNone.\n")
+        write(h / "chapters/overview.md", overview)
+        time.sleep(0.05)
+        dump(h / "checks/overview.json", {"sampled": [
+            {"block": "The Refunds team loads refund data every night. [p:2001]", "result": "PASS"},
+            {"block": "The Finance reporting group consumes refund data. [p:2001]", "result": "PASS"},
+            {"block": "- Refund request (Refunds): customers may request a refund within 30 days of purchase. [p:2001]", "result": "PASS"},
+            {"block": "The Refunds team loads refund data into it every night. [p:2001]", "result": "PASS"}]})
+        py(kit / "tools/manifest.py", "set", h / "manifest.csv", "overview", "status=done")
+        code, out = py(hb, "verify", "--area", "overview")
+        check("06: overview is not checked while a team chapter is still open", "SKIPPED  overview" in out, out)
+        code, out = py(hb, "verify", "--area", "refunds")
+        check("06: grounded, cited team chapter is verified", rows(h / "manifest.csv", "area")["refunds"]["status"] == "verified", out)
+        code, out = py(hb, "verify", "--area", "overview")
+        check("06: overview chapter is verified", rows(h / "manifest.csv", "area")["overview"]["status"] == "verified", out)
+        code, out = py(hb, "verify", "--final")
+        check("06: final is NOT ACCEPTED before the handbook is assembled", code != 0, out)
+        code, out = py(hb, "assemble")
+        book = (h / "HANDBOOK.md").read_text()
+        check("06: handbook assembled with overview first and linked sources",
+              book.index("Why it exists") < book.index("Why this team exists")
+              and "[p:2001](../01-confluence-download/pages/2001-refund-policy.md)" in book and "## Source index" in book, book)
+        check("06: catalogued facts from loop 04 are attached to the chapter", "**Refund window** (policy)" in book, book)
+        code, out = py(hb, "verify", "--final")
+        check("06: final report ACCEPTED", code == 0, out)
 
         if have_git:
             # ------------------------------------------------------------------ 05

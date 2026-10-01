@@ -30,7 +30,10 @@
       "Edit(/02b-repo-linkage/**)",
       "Edit(/03-repo-business-knowledge/**)",
       "Edit(/04-confluence-business-knowledge/**)",
-      "Edit(/05-jira-enrichment/**)"
+      "Edit(/05-jira-enrichment/**)",
+      "Bash(python3 06-business-handbook/handbook.py *)",
+      "Bash(python 06-business-handbook/handbook.py *)",
+      "Edit(/06-business-handbook/**)"
     ],
     "deny": [
       "Edit(/02a-repo-docs/repos/**)",

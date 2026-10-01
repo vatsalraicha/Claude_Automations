@@ -1,6 +1,6 @@
 # Start here
 
-This folder is a ready-to-run kit of six loops for Claude. Each loop has its own folder. You paste one prompt
+This folder is a ready-to-run kit of seven loops for Claude. Each loop has its own folder. You paste one prompt
 per loop; Claude then works through it step by step, keeps its state on disk, checks its own work with
 scripts it cannot override, and stops only when it is finished, needs your review, or is blocked.
 
@@ -20,7 +20,8 @@ Copy **this whole folder** to your office machine, keeping the structure exactly
 ├── 02b-repo-linkage/
 ├── 03-repo-business-knowledge/
 ├── 04-confluence-business-knowledge/
-└── 05-jira-enrichment/
+├── 05-jira-enrichment/
+└── 06-business-handbook/
 ```
 
 - `.claude/` is already in the right place. **Nothing goes into your home `~/.claude` folder.** The settings
@@ -69,10 +70,16 @@ Open Claude **in the kit root**, then paste the prompt from the loop's `FIRST_PR
 | 4 | `03-repo-business-knowledge/` | `03-repo-business-knowledge/FIRST_PROMPT.md` | nothing |
 | 5 | `04-confluence-business-knowledge/` | `04-confluence-business-knowledge/FIRST_PROMPT.md` | nothing |
 | 6 | `05-jira-enrichment/` | `05-jira-enrichment/FIRST_PROMPT.md` | optionally, the Jira projects to limit to |
+| 7 | `06-business-handbook/` | `06-business-handbook/FIRST_PROMPT.md` | the organisation name, the platforms to cover, optionally the team names |
 
 `01` and `02a` are independent and can run in two separate Claude sessions at the same time.
 `02b` and `03` need `02a` to be finished. `04` needs `01` to be finished. `05` uses whichever of `01` and
-`02a` is finished. Run one loop per Claude session.
+`02a` is finished. `06` needs `01` to be finished; it also uses `04` if that has finished. Run one loop per
+Claude session.
+
+**Which loop gives you a document to read?** `06-business-handbook/` writes `HANDBOOK.md`: an overview of the
+organisation (why it exists, its teams, its consumers, its processes, how it uses its platforms) followed by
+one chapter per team. Loop `04` produces a catalog of individual cited facts; loop `06` produces the narrative.
 
 The first prompt, for the Confluence download, is:
 
@@ -92,6 +99,9 @@ with `pages/INDEX.md` showing the page tree. Images and attachments are in `atta
 Every loop moves through phases recorded in its `PROGRESS.md`:
 
 `SETUP → INVENTORY → PILOT → PILOT_REVIEW → RUN → (RECONCILE) → FINAL → COMPLETE`
+
+(The handbook loop also has `OUTLINE` and `OUTLINE_REVIEW` before the pilot: it shows you the teams and
+chapters it plans, and waits for you to confirm them.)
 
 Claude stops in exactly three situations:
 

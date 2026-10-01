@@ -39,6 +39,10 @@ __pycache__/
 05-jira-enrichment/references.csv
 05-jira-enrichment/project-keys.txt
 
+06-business-handbook/chapters/
+06-business-handbook/outline.json
+06-business-handbook/HANDBOOK.md
+
 # Source article and local zip: kept on this machine, never pushed
 /*.pdf
 /*.zip

@@ -1,6 +1,6 @@
 # Knowledge loops kit
 
-This folder contains six loops. Each loop lives in its own folder and is driven by three files in that folder:
+This folder contains seven loops. Each loop lives in its own folder and is driven by three files in that folder:
 
 - `TASK.md` — the goal, the scope, what may and may not be written
 - `LOOP_INSTRUCTIONS.md` — the procedure for one iteration, phase by phase
@@ -14,6 +14,7 @@ This folder contains six loops. Each loop lives in its own folder and is driven 
 | `03-repo-business-knowledge/` | Extracts cited business rules and terms from the repositories | 02a |
 | `04-confluence-business-knowledge/` | Extracts cited business knowledge from the downloaded pages | 01 |
 | `05-jira-enrichment/` | Fetches the Jira tickets referenced by pages and code to explain why | 01 and/or 02a |
+| `06-business-handbook/` | Writes one readable handbook, organised by team, from the downloaded pages | 01 (04 optional) |
 
 ## Rules that apply to every loop
 
